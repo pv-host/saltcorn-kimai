@@ -1,0 +1,40 @@
+{
+  "name": "saltcorn-kimai",
+  "version": "0.2.0",
+  "description": "Saltcorn-Plugin: Kimai-Zeiterfassung lesend einbinden – Kunden, Projekte, Tätigkeiten und Stundeneinträge je Datensatz (z.B. Facility), Zuordnung über Vorlagen und Variablen",
+  "main": "index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node test/run-tests.js"
+  },
+  "author": "Peter Vassen",
+  "keywords": [
+    "saltcorn",
+    "saltcorn-plugin",
+    "kimai",
+    "zeiterfassung",
+    "timesheet"
+  ],
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pv-host/saltcorn-kimai.git"
+  },
+  "homepage": "https://github.com/pv-host/saltcorn-kimai#readme",
+  "bugs": {
+    "url": "https://github.com/pv-host/saltcorn-kimai/issues"
+  },
+  "devDependencies": {
+    "@saltcorn/data": ">=1.0.0",
+    "@saltcorn/markup": ">=1.0.0"
+  }
+}
