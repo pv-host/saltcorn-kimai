@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 – 2026-10-21
+
+- Neuer View-Typ **KimaiStunden**: zugeordnete Stunden einer Facility (Ebene Kunde) oder eines Prozesses (Ebene Projekt), die letzten N Einträge (Vorgabe 5, z.B. 5–7), serverseitig ohne JavaScript
+- Summenzeile: dargestellte Einträge, Gesamtstunden im Zeitraum oder beides; Tabelle oder kompakte Liste; Spalten wählbar; Projektspalte automatisch nur bei mehreren Projekten
+- Kleine Kimai-Abfrage (nur N+4 Einträge), solange keine Gesamtsumme verlangt ist
+
 ## 0.2.0 – 2026-10-18
 
 - Neue View-Typen je Ebene: **KimaiKunde** (z.B. facility) und **KimaiProjekt** (z.B. prozesse; Projekt über `{$prozess_projekt}`, optional nur beim Kunden `{$prozess_kunde}`); KimaiDatensatz bleibt als freie Variante

@@ -1,6 +1,6 @@
 {
   "name": "saltcorn-kimai",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Saltcorn-Plugin: Kimai-Zeiterfassung lesend einbinden – Kunden, Projekte, Tätigkeiten und Stundeneinträge je Datensatz (z.B. Facility), Zuordnung über Vorlagen und Variablen",
   "main": "index.js",
   "license": "MIT",

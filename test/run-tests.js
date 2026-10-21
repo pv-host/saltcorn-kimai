@@ -267,11 +267,51 @@ const t = async (name, fn) => {
       assert.ok(both.includes("Zuletzt:") && both.includes("16.10.2026") && both.includes("Audit") && both.includes("/de/team/timesheet/9/edit"));
       assert.ok(renderLast("last_date", null, {}, null).includes("kein Stundeneintrag"));
     });
+    const { loadHours } = plugin._internal;
+    const { renderHours } = require("../lib/hours");
+    await t("KimaiStunden: Facility – letzte 5 Einträge, kleine Kimai-Abfrage", async () => {
+      mock.calls.length = 0;
+      const h = await loadHours(client, {}, { hours_limit: 5 }, r, facility, staff, vars);
+      assert.strictEqual(h.entries.length, 5);
+      assert.strictEqual(h.more, true);
+      assert.strictEqual(h.total, null);
+      assert.ok(mock.calls.every((c) => !c.startsWith("/api/timesheets") || c.includes("size=9")));
+      const html = renderHours({ ...h, config: { hours_limit: 5 }, showRates: false, multiProject: true });
+      assert.strictEqual((html.match(/<tr>/g) || []).length, 6); // Kopf + 5
+      assert.ok(html.includes("<th class=\"\">Projekt</th>") && html.includes("5 Einträge: <b>1:15 h</b>"));
+      assert.ok(html.includes("ältere Einträge nicht dargestellt"));
+    });
+    await t("KimaiStunden: Prozess – 7 Einträge, Gesamtsumme im Zeitraum, Liste", async () => {
+      const rp = await resolveRow(client, mappingOf("projekt", {}), { certnr: "08150001" }, vars);
+      const c = { hours_limit: 7, hours_sum: "both", range_preset: "all", hours_style: "list" };
+      const h = await loadHours(client, {}, c, rp, {}, staff, vars);
+      assert.strictEqual(h.entries.length, 3);
+      assert.strictEqual(h.total, 7.5 * 3600);
+      assert.strictEqual(h.totalCount, 3);
+      const html = renderHours({ ...h, config: c, showRates: false, multiProject: false });
+      assert.ok(html.includes("<li") && !html.includes("<table") && html.includes("gesamt: <b>7:30 h</b>"));
+      assert.ok(!html.includes("08150001")); // Projektspalte „auto“ bei einem Projekt aus
+    });
+    await t("KimaiStunden: Zeitraum, eigene Einträge, Beträge, leer", async () => {
+      const c = { hours_limit: 6, range_preset: "template", range_from_template: "2026-02-01", range_to_template: "2026-03-31", hours_sum: "total" };
+      const h = await loadHours(client, {}, c, r, {}, staff, vars);
+      assert.strictEqual(h.totalCount, 4);
+      assert.strictEqual(h.rangeLabel, "01.02.2026–31.03.2026");
+      const own = await loadHours(client, {}, { hours_limit: 6 }, r, {}, user, vars);
+      assert.deepStrictEqual(own.entries.map((e) => e.id).sort(), [1000, 1001]);
+      assert.strictEqual(own.ownOnly, true);
+      const adm = await loadHours(client, {}, { hours_limit: 1, min_role_rates: "1" }, r, {}, { user: { id: 1, role_id: 1 } }, vars);
+      const html = renderHours({ ...adm, config: { col_betrag: true }, showRates: true });
+      assert.ok(html.includes("25,00 EUR"));
+      assert.ok(!renderHours({ ...adm, config: { col_betrag: true }, showRates: false }).includes("EUR"));
+      assert.ok(renderHours({ entries: [], config: {} }).includes("Keine Stundeneinträge"));
+      assert.ok(renderHours({ entries: [{ id: 1, begin: "2026-01-01T08:00:00", end: "2026-01-01T09:00:00", duration: 3600, user: "<x>", description: "" }], config: {} }).includes("&lt;x&gt;"));
+    });
     await t("Plugin-Struktur", () => {
       assert.strictEqual(plugin.plugin_name, "saltcorn-kimai");
       const vts = plugin.viewtemplates({});
-      assert.deepStrictEqual(vts.map((v) => v.name), ["KimaiKunde", "KimaiProjekt", "KimaiDatensatz", "KimaiUebersicht"]);
-      assert.deepStrictEqual(Object.keys(vts[0].routes).sort(), ["load", "refresh", "timesheets"]);
+      assert.deepStrictEqual(vts.map((v) => v.name), ["KimaiStunden", "KimaiKunde", "KimaiProjekt", "KimaiDatensatz", "KimaiUebersicht"]);
+      assert.deepStrictEqual(Object.keys(vts[1].routes).sort(), ["load", "refresh", "timesheets"]);
       assert.deepStrictEqual(Object.keys(plugin.actions({})), ["kimai_abgleich", "kimai_abgleich_kunde", "kimai_abgleich_projekt"]);
     });
   } else console.log("(index.js-Tests übersprungen: @saltcorn/data nicht gefunden – NODE_PATH setzen)");

@@ -6,6 +6,7 @@ View-Typen je **Ebene** (an eine Tabelle gebunden):
 
 | View-Typ | Ebene | Beispiel in facility | Zuordnung (Vorgabe) |
 |---|---|---|---|
+| `KimaiStunden` | Kunde **oder** Projekt (wählbar) | `facility` oder `prozesse` | die letzten N zugeordneten Stundeneinträge, z.B. 5–7 |
 | `KimaiKunde` | Kunde | Tabelle `facility` | Kimai-Kundenname beginnt mit `{$kunde}` = `[{facilitynr:4}]` |
 | `KimaiProjekt` | Projekt | Tabelle `prozesse` | Kimai-Projektname ist gleich `{$prozess_projekt}` = `{certnr:8}`, gesucht beim Kunden `{$prozess_kunde}` = `[{certnr[0:4]:8}]` |
 | `KimaiDatensatz` | frei | beliebig | Kunde und/oder Projekte frei über Vorlagen |
@@ -121,6 +122,29 @@ Empfohlene Views:
 3. Darstellung wie oben, z.B. `prozess_kimai_stunden` (Stundeneinträge, Höchstzahl 10) und `prozess_kimai_letzter` (Datum und Eintrag, Datumsformat „relativ“).
 
 Stundeneinträge beziehen sich auf dieser Ebene nur auf das gefundene Projekt.
+
+### Zugeordnete Stunden – View `KimaiStunden`
+
+Diese schlanke View zeigt die neuesten Stundeneinträge einer Facility oder eines Prozesses. Sie wird serverseitig ohne JavaScript erzeugt.
+
+1. Views → Neu: Typ **KimaiStunden**, Tabelle `facility` oder `prozesse`.
+2. **Ebene:** Kunde (facility: alle Stunden des Kimai-Kunden) oder Projekt (prozesse: Stunden des Kimai-Projekts). Bei Tabellennamen mit „proz“ ist „Projekt“ vorgewählt.
+3. **Zuordnung** und **Prüfung** wie bei KimaiKunde bzw. KimaiProjekt.
+4. **Darstellung und Rechte:**
+
+| Einstellung | Vorgabe | Hinweis |
+|---|---|---|
+| Anzahl dargestellter Einträge | 5 | die neuesten, 1–50, z.B. 5 bis 7 |
+| Zeitraum | gesamt | auch aktuelles Jahr, Vorjahr, letzte 90 Tage, aus Vorlage |
+| Summenzeile | Summe der dargestellten | oder Gesamtstunden im Zeitraum, beides, keine |
+| Darstellung | Tabelle | oder kompakte Liste, eine Zeile je Eintrag |
+| Spalten | Datum, Stunden, Benutzer, Tätigkeit, Beschreibung | Projekt „auto“ = nur bei mehreren Projekten; Uhrzeit, Kunde, Betrag zuschaltbar |
+| Überschrift / Text ohne Einträge | – / „Keine Stundeneinträge“ | |
+| Laufende Einträge, Links nach Kimai | aus | |
+
+Bei „Summe der dargestellten“ holt das Plugin nur die benötigten Einträge aus Kimai. „Gesamtstunden“ lädt alle Einträge des Zeitraums, die danach im Zwischenspeicher liegen. Für die Rollen gilt dasselbe wie bei den anderen Views: ohne Recht keine Anzeige, unterhalb der Grenze nur eigene Einträge, Beträge nur mit Recht.
+
+Beispiele: `facility_stunden` (Ebene Kunde, 5 Einträge, Summe „beides“) und `prozess_stunden` (Ebene Projekt, 7 Einträge, kompakte Liste).
 
 ### In die Show-Views einbetten
 

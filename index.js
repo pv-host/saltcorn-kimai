@@ -3,6 +3,8 @@
  * Saltcorn-Plugin: Kimai (Zeiterfassung) – nur lesend
  *
  * View-Typen (an eine Tabelle gebunden)
+ *  - KimaiStunden:   zugeordnete Stunden einer Facility oder eines Prozesses,
+ *                    die letzten N Einträge (z.B. 5–7), optional mit Summe
  *  - KimaiKunde:     Ebene Kunde, z.B. Tabelle facility – Kimai-Kunde über {$kunde}
  *  - KimaiProjekt:   Ebene Projekt, z.B. Tabelle prozesse – Kimai-Projekt über {$prozess_projekt}
  *  - KimaiDatensatz: frei konfigurierbar (Kunde und/oder Projekte über Vorlagen)
@@ -25,6 +27,7 @@ const { KimaiClient, KimaiError, normalizeBase } = require("./lib/kimai");
 const { buildVariables, DEFAULT_VARIABLES, dateVariables, fill, isoDay, rangePreset, TemplateError } = require("./lib/template");
 const { MAPPING_DEFAULTS, MATCH_MODES, withDefaults, resolveRow, resolveCustomerId, timesheetScope, idOf } = require("./lib/resolve");
 const { kimaiPanel } = require("./lib/browser");
+const { renderHours } = require("./lib/hours");
 
 function getFieldRepeat() {
   try {
@@ -1250,12 +1253,264 @@ const makeActions = (pluginCfg) =>
   Object.fromEntries(Object.entries(ACTION_LEVELS).map(([name, a]) => [name, makeAction(pluginCfg, a.level, a.what)]));
 
 
+// ----------------------------------------------------------------------------
+// View-Typ „KimaiStunden“: zugeordnete Stunden einer Facility oder eines Prozesses
+// (letzte N Einträge, serverseitig, ohne JavaScript)
+// ----------------------------------------------------------------------------
+async function probeHtml(pluginCfg, table, mappingCfg, vars) {
+  try {
+    const rows = await table.getRows({}, { limit: 3, orderBy: table.pk_name });
+    if (!rows.length) return "<p>Die Tabelle enthält noch keine Datensätze.</p>";
+    const client = clientFrom(pluginCfg);
+    const parts = [];
+    for (const row of rows) {
+      try {
+        const r = await resolveRow(client, mappingCfg, row, vars);
+        const vals = [
+          r.info.customer_value ? `Kunde „${esc(r.info.customer_value)}“` : "",
+          r.info.project_value ? `Projekt „${esc(r.info.project_value)}“` : "",
+        ].filter(Boolean);
+        parts.push(
+          `<li>Datensatz ${esc(row[table.pk_name])}: ${vals.join(", ")} → ${r.customers.length} Kunde(n)` +
+            (r.customers.length ? " (" + r.customers.slice(0, 3).map((c) => esc(c.name)).join(", ") + ")" : "") +
+            `, ${r.projects.length} Projekt(e)` +
+            (r.projects.length && r.projects.length <= 3 ? " (" + r.projects.map((p) => esc(p.name)).join(", ") + ")" : "") +
+            "</li>"
+        );
+      } catch (e) {
+        parts.push(`<li>Datensatz ${esc(row[table.pk_name])}: <span class="text-danger">${esc(e.message)}</span></li>`);
+      }
+    }
+    return `<p>Probe mit den ersten Datensätzen der Tabelle „${esc(table.name)}“:</p><ul>${parts.join("")}</ul>`;
+  } catch (e) {
+    return `<div class="alert alert-danger">Kimai-Abfrage nicht möglich: ${esc(e.message)}</div>`;
+  }
+}
+
+function hoursDisplayFields(roleOpts) {
+  const role = (name, label, def, sub) => ({ name, label, sublabel: sub, type: "String", attributes: { options: roleOpts }, default: def });
+  const col = (k, label, def) => ({ name: "col_" + k, label: `Spalte „${label}“`, type: "Bool", default: def });
+  return [
+    {
+      name: "hours_limit",
+      label: "Anzahl dargestellter Einträge",
+      sublabel: "die neuesten Einträge, z.B. 5 bis 7",
+      type: "Integer",
+      required: true,
+      default: 5,
+      attributes: { min: 1, max: 50 },
+    },
+    ...rangeFields().map((f) =>
+      f.name === "range_preset"
+        ? { ...f, label: "Zeitraum", default: "all", sublabel: "Einträge und Gesamtsumme nur aus diesem Zeitraum" }
+        : f
+    ),
+    {
+      name: "hours_sum",
+      label: "Summenzeile",
+      type: "String",
+      required: true,
+      attributes: {
+        options: [
+          { name: "shown", label: "Summe der dargestellten Einträge" },
+          { name: "total", label: "Gesamtstunden im Zeitraum" },
+          { name: "both", label: "beides" },
+          { name: "none", label: "keine" },
+        ],
+      },
+      default: "shown",
+      sublabel: "Gesamtstunden laden alle Einträge des Zeitraums aus Kimai (Zwischenspeicher)",
+    },
+    {
+      name: "hours_style",
+      label: "Darstellung",
+      type: "String",
+      attributes: {
+        options: [
+          { name: "table", label: "Tabelle" },
+          { name: "list", label: "kompakte Liste (eine Zeile je Eintrag)" },
+        ],
+      },
+      default: "table",
+    },
+    col("datum", "Datum", true),
+    col("zeit", "Uhrzeit von–bis", false),
+    col("dauer", "Stunden", true),
+    col("benutzer", "Benutzer", true),
+    {
+      name: "col_projekt",
+      label: "Spalte „Projekt“",
+      type: "String",
+      attributes: {
+        options: [
+          { name: "auto", label: "nur wenn mehrere Projekte (Facility)" },
+          { name: "true", label: "immer" },
+          { name: "false", label: "nie" },
+        ],
+      },
+      default: "auto",
+    },
+    col("kunde", "Kunde", false),
+    col("taetigkeit", "Tätigkeit", true),
+    col("beschreibung", "Beschreibung", true),
+    col("betrag", "Betrag (nur mit Recht)", false),
+    { name: "hours_title", label: "Überschrift", sublabel: "z.B. „Letzte Stundeneinträge“ – leer = keine", type: "String" },
+    { name: "hours_empty_text", label: "Text ohne Einträge", type: "String", default: "Keine Stundeneinträge" },
+    { name: "hours_include_running", label: "Laufende Einträge anzeigen", type: "Bool", default: false },
+    { name: "hours_links", label: "Links „In Kimai öffnen“", type: "Bool", default: false },
+    role("min_role_timesheets", "Mindestrolle Stundeneinträge sehen", "40", "andere Rollen sehen nichts"),
+    role("min_role_all_users", "Mindestrolle Einträge aller Benutzer sehen", "40", "andere Rollen sehen nur eigene Einträge"),
+    {
+      name: "kimai_user_template",
+      label: "Kimai-Benutzer des Saltcorn-Benutzers",
+      sublabel: "Vorgabe {$kimai_benutzer} = {email}",
+      type: "String",
+      default: "{$kimai_benutzer}",
+    },
+    role("min_role_rates", "Mindestrolle Beträge sehen", "1"),
+  ];
+}
+
+/** Daten für die Stunden-View holen (exportiert für Tests). */
+async function loadHours(client, pluginCfg, config, resolved, row, req, vars) {
+  const limit = Math.min(50, Math.max(1, Number(config.hours_limit) || 5));
+  const running = config.hours_include_running === true;
+  const range = rangePreset(config.range_preset || "all", {
+    row,
+    vars,
+    from_template: config.range_from_template,
+    to_template: config.range_to_template,
+  });
+  const body = { from: range.from, to: range.to };
+  const mode = config.hours_sum || "shown";
+  const needTotal = mode === "total" || mode === "both";
+  const r = await loadEntries(client, pluginCfg, config, resolved, body, req, vars, needTotal ? {} : { max: limit + 4 });
+  const usable = r.entries.filter((e) => running || e.end);
+  const entries = usable.slice(0, limit);
+  return {
+    entries,
+    more: usable.length > limit || (!needTotal && r.truncated),
+    total: needTotal ? usable.reduce((a, e) => a + (Number(e.duration) || 0), 0) : null,
+    totalCount: needTotal ? usable.length : null,
+    totalTruncated: needTotal && r.truncated,
+    ownOnly: r.own_only,
+    rangeLabel: range.from || range.to ? `${range.from ? dayDE(range.from) : "…"}–${range.to ? dayDE(range.to) : "…"}` : "",
+  };
+}
+
+const makeHoursView = (pluginCfg) => {
+  const cfg = pluginCfg || {};
+  const vars = () => buildVariables(cfg).vars;
+  const levelOf = (c) => (c && c.level === "projekt" ? "projekt" : "kunde");
+
+  const configuration_workflow = () =>
+    new Workflow({
+      steps: [
+        {
+          name: "Ebene",
+          form: async (context) => {
+            const table = await Table.findOne({ id: context.table_id });
+            const guess = table && /proz|process/i.test(table.name) ? "projekt" : "kunde";
+            return new Form({
+              blurb: "Zu welcher Ebene gehört die Tabelle? Danach richtet sich, wie die Stunden in Kimai gefunden werden.",
+              fields: [
+                {
+                  name: "level",
+                  label: "Ebene",
+                  type: "String",
+                  required: true,
+                  attributes: {
+                    options: [
+                      { name: "kunde", label: "Kunde – z.B. Tabelle facility: alle Stunden des Kimai-Kunden" },
+                      { name: "projekt", label: "Projekt – z.B. Tabelle prozesse: Stunden des Kimai-Projekts" },
+                    ],
+                  },
+                  default: guess,
+                },
+              ],
+            });
+          },
+        },
+        {
+          name: "Zuordnung zu Kimai",
+          form: async (context) => {
+            const table = await Table.findOne({ id: context.table_id });
+            const fields = await table.getFields();
+            const L = LEVELS[levelOf(context)];
+            return new Form({
+              blurb: L.blurb,
+              fields: L.fields(
+                fields.map((f) => f.name),
+                fields.map((f) => f.name).join(", ")
+              ),
+            });
+          },
+        },
+        {
+          name: "Prüfung",
+          form: async (context) => {
+            const table = await Table.findOne({ id: context.table_id });
+            const html = await probeHtml(cfg, table, mappingOf(levelOf(context), context), vars());
+            return new Form({ fields: [new Field({ name: "_probe", label: " ", input_type: "custom_html", attributes: { html } })] });
+          },
+        },
+        {
+          name: "Darstellung und Rechte",
+          form: async () => new Form({ fields: hoursDisplayFields(await roleOptions()) }),
+        },
+      ],
+    });
+
+  const get_state_fields = async (table_id) => {
+    const table = await Table.findOne({ id: table_id });
+    return [{ name: table ? table.pk_name : "id", type: "Integer", primary_key: true, required: true }];
+  };
+
+  const run = async (table_id, viewname, config, state, extra) => {
+    const req = extra && extra.req;
+    if (!allowed(req, config.min_role_timesheets, "40")) return "";
+    const table = await Table.findOne({ id: table_id });
+    const id = state[table.pk_name];
+    if (id === undefined || id === null || id === "") return div({ class: "text-muted small" }, "Kein Datensatz ausgewählt");
+    try {
+      const row = await table.getRow(
+        { [table.pk_name]: id },
+        req && req.user && req.user.id ? { forUser: req.user } : { forPublic: true }
+      );
+      if (!row) return "";
+      const client = clientFrom(cfg);
+      const resolved = await resolveRow(client, mappingOf(levelOf(config), config), row, vars());
+      const h = await loadHours(client, cfg, config, resolved, row, req, vars());
+      return renderHours({
+        ...h,
+        config,
+        showRates: allowed(req, config.min_role_rates, "1"),
+        links: kimaiLinks(cfg),
+        multiProject: resolved.projects.length > 1,
+      });
+    } catch (e) {
+      return `<div class="kimai-hours text-muted small" title="${esc(e.message)}">${
+        e.mapping_error ? esc(e.message) : "Kimai nicht verfügbar"
+      }</div>`;
+    }
+  };
+
+  return {
+    name: "KimaiStunden",
+    description: "Zugeordnete Stunden einer Facility oder eines Prozesses – die letzten N Kimai-Einträge, optional mit Summe",
+    display_state_form: false,
+    configuration_workflow,
+    get_state_fields,
+    run,
+  };
+};
+
 module.exports = {
   sc_plugin_api_version: 1,
   plugin_name: "saltcorn-kimai",
   configuration_workflow,
-  viewtemplates: (cfg) => [makeRecordView(cfg, "kunde"), makeRecordView(cfg, "projekt"), makeRecordView(cfg, "frei"), makeBrowseView(cfg)],
+  viewtemplates: (cfg) => [makeHoursView(cfg), makeRecordView(cfg, "kunde"), makeRecordView(cfg, "projekt"), makeRecordView(cfg, "frei"), makeBrowseView(cfg)],
   actions: (cfg) => makeActions(cfg),
   // für Tests
-  _internal: { loadEntries, publicData, publicEntry, ownUserKey, isOwnEntry, clientFrom, withDefaults, mappingOf, lastEntry, lastEntryText, lastDateText, renderLast },
+  _internal: { loadEntries, publicData, publicEntry, ownUserKey, isOwnEntry, clientFrom, withDefaults, mappingOf, lastEntry, lastEntryText, lastDateText, renderLast, loadHours },
 };
