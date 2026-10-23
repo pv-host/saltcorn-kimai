@@ -29,5 +29,5 @@
     "@saltcorn/data": ">=1.0.0",
     "@saltcorn/markup": ">=1.0.0"
   },
-  "private": true
+  "private": false
 }
