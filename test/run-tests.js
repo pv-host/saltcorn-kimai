@@ -19,27 +19,27 @@ const t = async (name, fn) => {
   const cfg = { base_url: `http://localhost:${PORT}/`, token: "secret-token", cache_ttl_s: 300, timesheet_ttl_s: 0 };
   const client = new KimaiClient(cfg);
   const { vars } = buildVariables({});
-  const facility = { id: 7, facilitynr: 815, firstcontact: 1, facilityname: "Holzpellets Muster", certnr: "08150002" };
+  const entity = { id: 7, entity_code: 815, contact_code: 1, entity_name: "Holzpellets Muster", reference_code: "08150002" };
 
   console.log("Vorlagen und Variablen:");
   await t("Feld, Auffüllen, Variable", () => {
-    assert.strictEqual(fill("[{facilitynr:4}]", facility, vars), "[0815]");
-    assert.strictEqual(fill("{$kunde}", facility, vars), "[0815]");
-    assert.strictEqual(fill("{$projekt}{firstcontact:2}", facility, vars), "081501");
-    assert.strictEqual(fill("[{certnr[0:4]}]", facility, vars), "[0815]");
-    assert.strictEqual(fill("{certnr[4:8]:6}", facility, vars), "0002");
-    assert.strictEqual(fill("{$prozess_kunde}", { certnr: 1000001 }, vars), "[0100]"); // erst auffüllen, dann ausschneiden
-    assert.strictEqual(fill("{$prozess_projekt}", { certnr: 1000001 }, vars), "01000001");
+    assert.strictEqual(fill("[{entity_code:4}]", entity, vars), "[0815]");
+    assert.strictEqual(fill("{$kunde}", entity, vars), "[0815]");
+    assert.strictEqual(fill("{$projekt}{contact_code:2}", entity, vars), "081501");
+    assert.strictEqual(fill("[{reference_code[0:4]}]", entity, vars), "[0815]");
+    assert.strictEqual(fill("{reference_code[4:8]:6}", entity, vars), "0002");
+    assert.strictEqual(fill("{$prozess_kunde}", { reference_code: 1000001 }, vars), "[0100]"); // erst auffüllen, dann ausschneiden
+    assert.strictEqual(fill("{$prozess_projekt}", { reference_code: 1000001 }, vars), "01000001");
   });
   await t("eigene Variablen überschreiben Vorgaben, verschachtelt", () => {
-    const v = buildVariables({ variables: [{ var_name: "nr", var_value: "{facilitynr:4}" }, { var_name: "$kunde", var_value: "[{$nr}-{firstcontact:2}]" }] }).vars;
-    assert.strictEqual(fill("{$kunde}", facility, v), "[0815-01]");
+    const v = buildVariables({ variables: [{ var_name: "nr", var_value: "{entity_code:4}" }, { var_name: "$kunde", var_value: "[{$nr}-{contact_code:2}]" }] }).vars;
+    assert.strictEqual(fill("{$kunde}", entity, v), "[0815-01]");
   });
   await t("Fehler: leeres Feld, unbekannte Variable, Zirkel", () => {
-    assert.throws(() => fill("{$kunde}", { facilitynr: "" }, vars), /kein Wert für \{facilitynr\}/);
-    assert.throws(() => fill("{$gibtsnicht}", facility, vars), /Unbekannte Variable/);
+    assert.throws(() => fill("{$kunde}", { entity_code: "" }, vars), /kein Wert für \{entity_code\}/);
+    assert.throws(() => fill("{$gibtsnicht}", entity, vars), /Unbekannte Variable/);
     const v = buildVariables({ variables: [{ var_name: "a", var_value: "{$b}" }, { var_name: "b", var_value: "{$a}" }] }).vars;
-    assert.throws(() => fill("{$a}", facility, v), /zu tief/);
+    assert.throws(() => fill("{$a}", entity, v), /zu tief/);
   });
   await t("ungültige Variablen werden gemeldet", () => {
     const r = buildVariables({ variables: [{ var_name: "1x", var_value: "a" }, { var_name: "heute", var_value: "x" }, { var_name: "k", var_value: "1" }, { var_name: "k", var_value: "2" }] });
@@ -107,8 +107,8 @@ const t = async (name, fn) => {
   });
 
   console.log("Zuordnung:");
-  await t("Facility -> Kunde über Präfix {$kunde}", async () => {
-    const r = await resolveRow(client, {}, facility, vars);
+  await t("Entity -> Kunde über Präfix {$kunde}", async () => {
+    const r = await resolveRow(client, {}, entity, vars);
     assert.deepStrictEqual(r.customers.map((c) => c.id), [1]);
     assert.deepStrictEqual(r.projects.map((p) => p.id).sort(), [11, 12, 13]);
     // projektbezogene von 11 + globale (auch versteckte)
@@ -116,29 +116,29 @@ const t = async (name, fn) => {
     assert.deepStrictEqual(timesheetScope(r), { customers: [1] });
   });
   await t("inaktive ausblenden", async () => {
-    const r = await resolveRow(client, { include_hidden: false }, facility, vars);
+    const r = await resolveRow(client, { include_hidden: false }, entity, vars);
     assert.deepStrictEqual(r.projects.map((p) => p.id).sort(), [11, 12]);
     assert.ok(!r.activities.some((a) => a.id === 102));
-    const r2 = await resolveRow(client, { include_hidden: false }, { facilitynr: 1408 }, vars);
+    const r2 = await resolveRow(client, { include_hidden: false }, { entity_code: 1408 }, vars);
     assert.strictEqual(r2.customers.length, 0);
   });
   await t("Kunde über Nummer und über ID-Feld", async () => {
-    const r = await resolveRow(client, { customer_match: "number", customer_value: "K-{facilitynr:4}" }, facility, vars);
+    const r = await resolveRow(client, { customer_match: "number", customer_value: "K-{entity_code:4}" }, entity, vars);
     assert.deepStrictEqual(r.customers.map((c) => c.id), [1]);
     const r2 = await resolveRow(client, { customer_match: "id_field", customer_id_field: "kimai_ids" }, { kimai_ids: "1, 2" }, vars);
     assert.deepStrictEqual(r2.customers.map((c) => c.id), [1, 2]);
     await assert.rejects(resolveRow(client, { customer_match: "id_field", customer_id_field: "kimai_ids" }, { kimai_ids: "" }, vars), /keine Kimai-ID/);
     await assert.rejects(resolveRow(client, { customer_match: "id_field", customer_id_field: "kimai_ids" }, { kimai_ids: "1;x" }, vars), /keine Kimai-ID/);
   });
-  await t("Prozess -> Kunde über {certnr[0:4]}, Projekt über {certnr}", async () => {
-    const proc = { certnr: "08150002" };
-    const v = buildVariables({ variables: [{ var_name: "kunde_prozess", var_value: "[{certnr[0:4]}]" }] }).vars;
-    const r = await resolveRow(client, { customer_value: "{$kunde_prozess}", project_scope: "customer_match", project_match: "name_exact", project_value: "{certnr}" }, proc, v);
+  await t("Prozess -> Kunde über {reference_code[0:4]}, Projekt über {reference_code}", async () => {
+    const proc = { reference_code: "08150002" };
+    const v = buildVariables({ variables: [{ var_name: "kunde_prozess", var_value: "[{reference_code[0:4]}]" }] }).vars;
+    const r = await resolveRow(client, { customer_value: "{$kunde_prozess}", project_scope: "customer_match", project_match: "name_exact", project_value: "{reference_code}" }, proc, v);
     assert.deepStrictEqual(r.customers.map((c) => c.id), [1]);
     assert.deepStrictEqual(r.projects.map((p) => p.id), [12]);
   });
-  await t("Prozess -> Projekt über {certnr} innerhalb des Kunden", async () => {
-    const r = await resolveRow(client, { project_scope: "customer_match", project_match: "name_exact", project_value: "{certnr}" }, facility, vars);
+  await t("Prozess -> Projekt über {reference_code} innerhalb des Kunden", async () => {
+    const r = await resolveRow(client, { project_scope: "customer_match", project_match: "name_exact", project_value: "{reference_code}" }, entity, vars);
     assert.deepStrictEqual(r.projects.map((p) => p.id), [12]);
     assert.deepStrictEqual(timesheetScope(r), { projects: [12] });
     assert.deepStrictEqual(r.activities.map((a) => a.id).sort(), [100, 101, 102]); // keine projektbez. für 12
@@ -149,7 +149,7 @@ const t = async (name, fn) => {
     assert.deepStrictEqual(r.customers.map((c) => c.id), [2]);
   });
   await t("Schutz: leere/zu kurze Werte zeigen nie alle Kunden", async () => {
-    await assert.rejects(resolveRow(client, { customer_value: "{facilityname}" }, { facilityname: " " }, vars), /kein Wert|leeren Wert/);
+    await assert.rejects(resolveRow(client, { customer_value: "{entity_name}" }, { entity_name: " " }, vars), /kein Wert|leeren Wert/);
     await assert.rejects(resolveRow(client, { customer_value: "[" }, {}, vars), /zu kurz/);
     await assert.rejects(resolveRow(client, { customer_match: "none" }, {}, vars), /Ohne Kundenzuordnung/);
   });
@@ -172,9 +172,9 @@ const t = async (name, fn) => {
     console.log("Stundeneinträge (index.js):");
     const plugin = require("../index.js");
     const { loadEntries, ownUserKey, publicData } = plugin._internal;
-    const r = await resolveRow(client, {}, facility, vars);
-    const staff = { user: { id: 2, role_id: 40, email: "x@pv-host.net" } };
-    const user = { user: { id: 3, role_id: 80, email: "Anna@pv-host.net" } };
+    const r = await resolveRow(client, {}, entity, vars);
+    const staff = { user: { id: 2, role_id: 40, email: "x@example.invalid" } };
+    const user = { user: { id: 3, role_id: 80, email: "Anna@example.invalid" } };
     await t("Zeitraum, Summen, Beträge nur mit Recht", async () => {
       const res = await loadEntries(client, {}, {}, r, { from: "2026-01-01", to: "2026-03-31" }, staff, vars);
       assert.strictEqual(res.entries.length, 4);
@@ -217,7 +217,7 @@ const t = async (name, fn) => {
     });
     const { mappingOf, lastEntry, lastEntryText, lastDateText, renderLast } = plugin._internal;
     await t("Ebene Projekt: Prozess -> Kimai-Projekt über {$prozess_projekt} beim Kunden {$prozess_kunde}", async () => {
-      const proc = { certnr: "08150002" };
+      const proc = { reference_code: "08150002" };
       const rp = await resolveRow(client, mappingOf("projekt", {}), proc, vars);
       assert.deepStrictEqual(rp.customers.map((c) => c.id), [1]);
       assert.deepStrictEqual(rp.projects.map((p) => p.id), [12]);
@@ -225,7 +225,7 @@ const t = async (name, fn) => {
       const ra = await resolveRow(client, mappingOf("projekt", { project_within_customer: false }), proc, vars);
       assert.deepStrictEqual(ra.projects.map((p) => p.id), [12]);
       assert.deepStrictEqual(ra.customers.map((c) => c.id), [1]); // abgeleitet
-      const none = await resolveRow(client, mappingOf("projekt", {}), { certnr: "08159999" }, vars);
+      const none = await resolveRow(client, mappingOf("projekt", {}), { reference_code: "08159999" }, vars);
       assert.strictEqual(none.projects.length, 0);
     });
     await t("Ebene Kunde: „keine Kundenzuordnung“ und „alle Kunden“ sind ausgeschlossen", () => {
@@ -241,14 +241,14 @@ const t = async (name, fn) => {
       assert.ok(mock.calls.some((c) => c.includes("size=3")));
       assert.ok(res.entries[0].begin >= res.entries[1].begin);
     });
-    await t("letzter Stundeneintrag: Facility, Prozess, eigene, ohne Treffer", async () => {
+    await t("letzter Stundeneintrag: Entity, Prozess, eigene, ohne Treffer", async () => {
       const last = await lastEntry(client, {}, {}, r, staff, vars);
       assert.strictEqual(last.begin.slice(0, 10), "2026-05-28");
-      const rp = await resolveRow(client, mappingOf("projekt", {}), { certnr: "08150001" }, vars);
+      const rp = await resolveRow(client, mappingOf("projekt", {}), { reference_code: "08150001" }, vars);
       assert.strictEqual((await lastEntry(client, {}, {}, rp, staff, vars)).id, 1001);
       const own = await lastEntry(client, {}, {}, r, user, vars);
       assert.strictEqual(own.id, 1001); // Anna: 04.02.2026
-      const rn = await resolveRow(client, mappingOf("projekt", {}), { certnr: "08150003" }, vars);
+      const rn = await resolveRow(client, mappingOf("projekt", {}), { reference_code: "08150003" }, vars);
       assert.strictEqual(await lastEntry(client, {}, {}, rn, staff, vars), null);
     });
     await t("letzter Stundeneintrag: Datum und Eintrag getrennt formatiert", () => {
@@ -269,9 +269,9 @@ const t = async (name, fn) => {
     });
     const { loadHours } = plugin._internal;
     const { renderHours } = require("../lib/hours");
-    await t("KimaiStunden: Facility – letzte 5 Einträge, kleine Kimai-Abfrage", async () => {
+    await t("KimaiStunden: Entity – letzte 5 Einträge, kleine Kimai-Abfrage", async () => {
       mock.calls.length = 0;
-      const h = await loadHours(client, {}, { hours_limit: 5 }, r, facility, staff, vars);
+      const h = await loadHours(client, {}, { hours_limit: 5 }, r, entity, staff, vars);
       assert.strictEqual(h.entries.length, 5);
       assert.strictEqual(h.more, true);
       assert.strictEqual(h.total, null);
@@ -282,7 +282,7 @@ const t = async (name, fn) => {
       assert.ok(html.includes("ältere Einträge nicht dargestellt"));
     });
     await t("KimaiStunden: Prozess – 7 Einträge, Gesamtsumme im Zeitraum, Liste", async () => {
-      const rp = await resolveRow(client, mappingOf("projekt", {}), { certnr: "08150001" }, vars);
+      const rp = await resolveRow(client, mappingOf("projekt", {}), { reference_code: "08150001" }, vars);
       const c = { hours_limit: 7, hours_sum: "both", range_preset: "all", hours_style: "list" };
       const h = await loadHours(client, {}, c, rp, {}, staff, vars);
       assert.strictEqual(h.entries.length, 3);

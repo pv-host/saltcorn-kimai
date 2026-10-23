@@ -3,10 +3,10 @@
  * Saltcorn-Plugin: Kimai (Zeiterfassung) – nur lesend
  *
  * View-Typen (an eine Tabelle gebunden)
- *  - KimaiStunden:   zugeordnete Stunden einer Facility oder eines Prozesses,
+ *  - KimaiStunden:   zugeordnete Stunden einer Entity oder eines Prozesses,
  *                    die letzten N Einträge (z.B. 5–7), optional mit Summe
- *  - KimaiKunde:     Ebene Kunde, z.B. Tabelle facility – Kimai-Kunde über {$kunde}
- *  - KimaiProjekt:   Ebene Projekt, z.B. Tabelle prozesse – Kimai-Projekt über {$prozess_projekt}
+ *  - KimaiKunde:     Ebene Kunde, z.B. Tabelle entity – Kimai-Kunde über {$kunde}
+ *  - KimaiProjekt:   Ebene Projekt, z.B. Tabelle projects – Kimai-Projekt über {$prozess_projekt}
  *  - KimaiDatensatz: frei konfigurierbar (Kunde und/oder Projekte über Vorlagen)
  *  Darstellung je View: Register, einzelne Liste (mit Zeilenbegrenzung), letzte
  *  Stundeneinträge oder letzter Stundeneintrag (nur Datum / nur Eintrag / beides).
@@ -80,7 +80,7 @@ const configuration_workflow = () =>
               {
                 name: "base_url",
                 label: "Kimai-URL",
-                sublabel: "z.B. https://zeit.pv-host.net (ohne /api). Bei Installation in Unterordner: https://host/kimai",
+                sublabel: "z.B. https://zeit.example.invalid (ohne /api). Bei Installation in Unterordner: https://host/kimai",
                 type: "String",
                 required: true,
               },
@@ -493,7 +493,7 @@ function mappingFields(fieldNames, allFieldsText) {
     {
       name: "project_value",
       label: "Vorlage Projekt",
-      sublabel: `Vorgabe {$projekt} = „${DEFAULT_VARIABLES.projekt}“, z.B. {certnr} für Prozesse`,
+      sublabel: `Vorgabe {$projekt} = „${DEFAULT_VARIABLES.projekt}“, z.B. {reference_code} für Projects`,
       type: "String",
       default: MAPPING_DEFAULTS.project_value,
       showIf: { project_scope: ["customer_match", "match"] },
@@ -523,7 +523,7 @@ function mappingFields(fieldNames, allFieldsText) {
   ];
 }
 
-/** Felder Ebene Kunde (z.B. Tabelle facility) */
+/** Felder Ebene Kunde (z.B. Tabelle entity) */
 function customerLevelFields(fieldNames, allFieldsText) {
   return mappingFields(fieldNames, allFieldsText)
     .map((f) => {
@@ -537,7 +537,7 @@ function customerLevelFields(fieldNames, allFieldsText) {
     });
 }
 
-/** Felder Ebene Projekt (z.B. Tabelle prozesse) */
+/** Felder Ebene Projekt (z.B. Tabelle projects) */
 function projectLevelFields(fieldNames, allFieldsText) {
   return [
     {
@@ -605,17 +605,17 @@ function projectLevelFields(fieldNames, allFieldsText) {
 const LEVELS = {
   kunde: {
     view: "KimaiKunde",
-    description: "Kimai auf Ebene Kunde – z.B. Tabelle facility: Kunde, Projekte, Tätigkeiten, Stundeneinträge, letzter Eintrag",
+    description: "Kimai auf Ebene Kunde – z.B. Tabelle entity: Kunde, Projekte, Tätigkeiten, Stundeneinträge, letzter Eintrag",
     fields: customerLevelFields,
     labels: {},
-    blurb: "Ebene Kunde: Zum Datensatz (z.B. Facility) wird der Kimai-Kunde gesucht, dazu seine Projekte. Variablen pflegen Sie zentral in der Plugin-Konfiguration, Schritt 2.",
+    blurb: "Ebene Kunde: Zum Datensatz (z.B. Entity) wird der Kimai-Kunde gesucht, dazu seine Projekte. Variablen pflegen Sie zentral in der Plugin-Konfiguration, Schritt 2.",
   },
   projekt: {
     view: "KimaiProjekt",
-    description: "Kimai auf Ebene Projekt – z.B. Tabelle prozesse: Projekt, Tätigkeiten, Stundeneinträge, letzter Eintrag",
+    description: "Kimai auf Ebene Projekt – z.B. Tabelle projects: Projekt, Tätigkeiten, Stundeneinträge, letzter Eintrag",
     fields: projectLevelFields,
     labels: { projects: "Projekt" },
-    blurb: "Ebene Projekt: Zum Datensatz (z.B. Prozess mit certnr) wird das Kimai-Projekt gesucht. Stundeneinträge beziehen sich nur auf dieses Projekt.",
+    blurb: "Ebene Projekt: Zum Datensatz (z.B. Prozess mit reference_code) wird das Kimai-Projekt gesucht. Stundeneinträge beziehen sich nur auf dieses Projekt.",
   },
   frei: {
     view: "KimaiDatensatz",
@@ -868,8 +868,8 @@ function renderPanel({ viewname, ctx, config, req, mode, pluginCfg, range, label
 }
 
 // ----------------------------------------------------------------------------
-// Datensatz-Views je Ebene: „KimaiKunde“ (z.B. facility), „KimaiProjekt“
-// (z.B. prozesse) und frei konfigurierbar „KimaiDatensatz“
+// Datensatz-Views je Ebene: „KimaiKunde“ (z.B. entity), „KimaiProjekt“
+// (z.B. projects) und frei konfigurierbar „KimaiDatensatz“
 // ----------------------------------------------------------------------------
 const makeRecordView = (pluginCfg, level = "frei") => {
   const cfg = pluginCfg || {};
@@ -1155,8 +1155,8 @@ const makeBrowseView = (pluginCfg) => {
 // ----------------------------------------------------------------------------
 const ACTION_LEVELS = {
   kimai_abgleich: { level: "frei", what: "frei konfigurierbar wie KimaiDatensatz" },
-  kimai_abgleich_kunde: { level: "kunde", what: "Ebene Kunde wie KimaiKunde, z.B. Tabelle facility" },
-  kimai_abgleich_projekt: { level: "projekt", what: "Ebene Projekt wie KimaiProjekt, z.B. Tabelle prozesse" },
+  kimai_abgleich_kunde: { level: "kunde", what: "Ebene Kunde wie KimaiKunde, z.B. Tabelle entity" },
+  kimai_abgleich_projekt: { level: "projekt", what: "Ebene Projekt wie KimaiProjekt, z.B. Tabelle projects" },
 };
 
 const makeAction = (pluginCfg, level, what) => ({
@@ -1254,7 +1254,7 @@ const makeActions = (pluginCfg) =>
 
 
 // ----------------------------------------------------------------------------
-// View-Typ „KimaiStunden“: zugeordnete Stunden einer Facility oder eines Prozesses
+// View-Typ „KimaiStunden“: zugeordnete Stunden einer Entity oder eines Prozesses
 // (letzte N Einträge, serverseitig, ohne JavaScript)
 // ----------------------------------------------------------------------------
 async function probeHtml(pluginCfg, table, mappingCfg, vars) {
@@ -1343,7 +1343,7 @@ function hoursDisplayFields(roleOpts) {
       type: "String",
       attributes: {
         options: [
-          { name: "auto", label: "nur wenn mehrere Projekte (Facility)" },
+          { name: "auto", label: "nur wenn mehrere Projekte (Entity)" },
           { name: "true", label: "immer" },
           { name: "false", label: "nie" },
         ],
@@ -1421,8 +1421,8 @@ const makeHoursView = (pluginCfg) => {
                   required: true,
                   attributes: {
                     options: [
-                      { name: "kunde", label: "Kunde – z.B. Tabelle facility: alle Stunden des Kimai-Kunden" },
-                      { name: "projekt", label: "Projekt – z.B. Tabelle prozesse: Stunden des Kimai-Projekts" },
+                      { name: "kunde", label: "Kunde – z.B. Tabelle entity: alle Stunden des Kimai-Kunden" },
+                      { name: "projekt", label: "Projekt – z.B. Tabelle projects: Stunden des Kimai-Projekts" },
                     ],
                   },
                   default: guess,
@@ -1497,7 +1497,7 @@ const makeHoursView = (pluginCfg) => {
 
   return {
     name: "KimaiStunden",
-    description: "Zugeordnete Stunden einer Facility oder eines Prozesses – die letzten N Kimai-Einträge, optional mit Summe",
+    description: "Zugeordnete Stunden einer Entity oder eines Prozesses – die letzten N Kimai-Einträge, optional mit Summe",
     display_state_form: false,
     configuration_workflow,
     get_state_fields,

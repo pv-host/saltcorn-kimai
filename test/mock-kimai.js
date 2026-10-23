@@ -23,7 +23,7 @@ function data() {
     { id: 121, name: "Nachaudit", project: 21, visible: true, billable: true },
   ];
   const users = {
-    5: { id: 5, username: "anna@pv-host.net", alias: "Anna Berger" },
+    5: { id: 5, username: "anna@example.invalid", alias: "Anna Berger" },
     6: { id: 6, username: "bernd", alias: "Bernd Kramer" },
   };
   const ts = [];

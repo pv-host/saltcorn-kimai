@@ -1,14 +1,18 @@
+# Bereinigte Fassung 0.4.0
+
+Stand 21.10.2026. Vor Installation SECURITY-REVIEW.md und die übergeordnete UMSTELLUNG.md lesen. Historische Testangaben im folgenden Text gelten nicht als erneuter Integrationstest dieser Fassung.
+
 # saltcorn-kimai
 
-Saltcorn-Plugin, das eine Kimai-2-Installation **lesend** einbindet: Kunden, Projekte, Tätigkeiten und Stundeneinträge zu einem Saltcorn-Datensatz, zum Beispiel zu einer Facility. Wie Saltcorn-Datensatz, Kimai-Kunde, Projekte und Tätigkeiten zusammenhängen, legen Sie über **Vorlagen und Variablen** fest.
+Saltcorn-Plugin, das eine Kimai-2-Installation **lesend** einbindet: Kunden, Projekte, Tätigkeiten und Stundeneinträge zu einem Saltcorn-Datensatz, zum Beispiel zu einer Entity. Wie Saltcorn-Datensatz, Kimai-Kunde, Projekte und Tätigkeiten zusammenhängen, legen Sie über **Vorlagen und Variablen** fest.
 
 View-Typen je **Ebene** (an eine Tabelle gebunden):
 
-| View-Typ | Ebene | Beispiel in facility | Zuordnung (Vorgabe) |
+| View-Typ | Ebene | Beispiel in entity | Zuordnung (Vorgabe) |
 |---|---|---|---|
-| `KimaiStunden` | Kunde **oder** Projekt (wählbar) | `facility` oder `prozesse` | die letzten N zugeordneten Stundeneinträge, z.B. 5–7 |
-| `KimaiKunde` | Kunde | Tabelle `facility` | Kimai-Kundenname beginnt mit `{$kunde}` = `[{facilitynr:4}]` |
-| `KimaiProjekt` | Projekt | Tabelle `prozesse` | Kimai-Projektname ist gleich `{$prozess_projekt}` = `{certnr:8}`, gesucht beim Kunden `{$prozess_kunde}` = `[{certnr[0:4]:8}]` |
+| `KimaiStunden` | Kunde **oder** Projekt (wählbar) | `entity` oder `projects` | die letzten N zugeordneten Stundeneinträge, z.B. 5–7 |
+| `KimaiKunde` | Kunde | Tabelle `entity` | Kimai-Kundenname beginnt mit `{$kunde}` = `[{entity_code:4}]` |
+| `KimaiProjekt` | Projekt | Tabelle `projects` | Kimai-Projektname ist gleich `{$prozess_projekt}` = `{reference_code:8}`, gesucht beim Kunden `{$prozess_kunde}` = `[{reference_code[0:4]:8}]` |
 | `KimaiDatensatz` | frei | beliebig | Kunde und/oder Projekte frei über Vorlagen |
 
 Jede dieser Views hat eine **Darstellung**:
@@ -25,7 +29,7 @@ Jede dieser Views hat eine **Darstellung**:
 
 **Zeilenbegrenzung:** „Höchstzahl dargestellter Zeilen“ begrenzt jede Liste (Kunden, Projekte, Tätigkeiten, Stundeneinträge). Darunter steht, wie viele Zeilen nicht dargestellt sind. Summen und CSV beziehen sich weiter auf alle Einträge im Zeitraum. Bei „Letzte Stundeneinträge“ holt das Plugin nur so viele Einträge aus Kimai wie dargestellt werden (Vorgabe 10).
 
-**Letzter Stundeneintrag separat:** Datum und Eintrag sind eigene Darstellungen. Legen Sie je eine View an und platzieren Sie sie unabhängig voneinander im Layout, z.B. das Datum im Kopf der Facility und den Eintrag in einer Infobox. Diese Views werden serverseitig ohne JavaScript erzeugt und stehen wie ein Feld im Text.
+**Letzter Stundeneintrag separat:** Datum und Eintrag sind eigene Darstellungen. Legen Sie je eine View an und platzieren Sie sie unabhängig voneinander im Layout, z.B. das Datum im Kopf der Entity und den Eintrag in einer Infobox. Diese Views werden serverseitig ohne JavaScript erzeugt und stehen wie ein Feld im Text.
 
 Außerdem:
 
@@ -41,7 +45,7 @@ Saltcorn → Einstellungen → Module → Hinzufügen:
 | Feld | Wert |
 |---|---|
 | Name | `saltcorn-kimai` |
-| Quelle | `npm` (nach Veröffentlichung) oder `github` mit Position `pv-host/saltcorn-kimai` |
+| Quelle | `npm` (nach Veröffentlichung) oder `github` mit Position `plugin-contributors/saltcorn-kimai` |
 
 Alternativ am Server, ohne Webserver-Timeout:
 
@@ -65,7 +69,7 @@ Für Updates verwenden Sie die Update-Funktion beim vorhandenen Modul und legen 
 
 | Einstellung | Vorgabe | Hinweis |
 |---|---|---|
-| Kimai-URL | – | ohne `/api`, z.B. `https://zeit.pv-host.net` |
+| Kimai-URL | – | ohne `/api`, z.B. `https://zeit.example.invalid` |
 | Anmeldung | API-Token | alt: `X-AUTH-USER` + `X-AUTH-TOKEN` |
 | Zwischenspeicher Kunden/Projekte/Tätigkeiten | 300 s | bei 5.000+ Projekten sinnvoll |
 | Zwischenspeicher Zeiteinträge | 60 s | |
@@ -76,13 +80,13 @@ Für Updates verwenden Sie die Update-Funktion beim vorhandenen Modul und legen 
 
 | Variable | Vorgabe | Bedeutung |
 |---|---|---|
-| `kunde` | `[{facilitynr:4}]` | Anfang des Kimai-Kundennamens, Schema `[NNNN] Firma` |
-| `projekt` | `{facilitynr:4}` | Vorlage für Projektfilter, z.B. `{certnr}` für Prozesse |
+| `kunde` | `[{entity_code:4}]` | Anfang des Kimai-Kundennamens, Schema `[NNNN] Firma` |
+| `projekt` | `{entity_code:4}` | Vorlage für Projektfilter, z.B. `{reference_code}` für Projects |
 | `kimai_benutzer` | `{email}` | Kimai-Benutzer eines Saltcorn-Benutzers (für „nur eigene Einträge“) |
-| `prozess_projekt` | `{certnr:8}` | Kimai-Projektname eines Prozesses (Ebene Projekt) |
-| `prozess_kunde` | `[{certnr[0:4]:8}]` | Kimai-Kunde eines Prozesses: erste 4 Stellen der certnr |
+| `prozess_projekt` | `{reference_code:8}` | Kimai-Projektname eines Prozesses (Ebene Projekt) |
+| `prozess_kunde` | `[{reference_code[0:4]:8}]` | Kimai-Kunde eines Prozesses: erste 4 Stellen der reference_code |
 
-Ändern Sie eine Variable hier, gilt die Änderung sofort für alle Views. Eigene Variablen sind möglich, zum Beispiel `nr` = `{facilitynr:4}` und `kunde` = `[{$nr}]`.
+Ändern Sie eine Variable hier, gilt die Änderung sofort für alle Views. Eigene Variablen sind möglich, zum Beispiel `nr` = `{entity_code:4}` und `kunde` = `[{$nr}]`.
 
 ### Vorlagen
 
@@ -90,34 +94,34 @@ Für Updates verwenden Sie die Update-Funktion beim vorhandenen Modul und legen 
 |---|---|
 | `{feld}` | Wert eines Feldes der Tabelle |
 | `{feld:4}` | links mit Nullen auf 4 Stellen: `815` → `0815` |
-| `{feld[0:4]}` | Ausschnitt, Zeichen 0 bis 4: `{certnr[0:4]}` → `0815` aus `08150002` |
+| `{feld[0:4]}` | Ausschnitt, Zeichen 0 bis 4: `{reference_code[0:4]}` → `0815` aus `08150002` |
 | `{feld[0:4]:8}` | erst auf 8 Stellen auffüllen, dann ausschneiden: `1000001` → `01000001` → `0100` |
 | `{$name}` | Variable aus Schritt 2 (darf selbst Felder und Variablen enthalten) |
 | `{$heute}` `{$jahr}` `{$vorjahr}` `{$monat}` `{$jahresbeginn}` `{$jahresende}` `{$vorjahresbeginn}` `{$vorjahresende}` `{$monatsbeginn}` `{$vor30tagen}` `{$vor90tagen}` `{$vor365tagen}` | eingebaute Datumsvariablen |
 
 Ist ein Feld leer oder ergibt die Vorlage einen leeren bzw. zu kurzen Wert (unter 2 Zeichen bei „beginnt mit/enthält“), zeigt die View einen Hinweis. Sie zeigt dann **nie** alle Kunden an.
 
-## Einbindung in facility
+## Einbindung in entity
 
-### Ebene Kunde – Tabelle `facility`
+### Ebene Kunde – Tabelle `entity`
 
-1. Views → Neu: Typ **KimaiKunde**, Tabelle **facility**, Mindestrolle z.B. `staff`.
-2. Schritt „Zuordnung zu Kimai“: Vorgaben übernehmen (Name beginnt mit `{$kunde}`, alle Projekte des Kunden). Andere Zuordnungsarten: Name ist gleich/enthält, Kimai-Feld „Nummer“ (z.B. `K-{facilitynr:4}`), Kommentar enthält, Kimai-ID in einem Feld.
-3. Schritt „Prüfung“: zeigt für die ersten drei Facilities Suchwert, Kunden, Projekte und Tätigkeiten.
+1. Views → Neu: Typ **KimaiKunde**, Tabelle **entity**, Mindestrolle z.B. `staff`.
+2. Schritt „Zuordnung zu Kimai“: Vorgaben übernehmen (Name beginnt mit `{$kunde}`, alle Projekte des Kunden). Andere Zuordnungsarten: Name ist gleich/enthält, Kimai-Feld „Nummer“ (z.B. `K-{entity_code:4}`), Kommentar enthält, Kimai-ID in einem Feld.
+3. Schritt „Prüfung“: zeigt für die ersten drei Entities Suchwert, Kunden, Projekte und Tätigkeiten.
 4. Schritt „Darstellung und Rechte“: Darstellung, Höchstzahl Zeilen und Rollen.
 
 Empfohlene Views:
 
 | Name | Darstellung | Einstellungen |
 |---|---|---|
-| `facility_kimai` | Register | Höchstzahl Zeilen z.B. 20 |
-| `facility_kimai_letzte` | Letzte Stundeneinträge | Höchstzahl Zeilen 5 |
-| `facility_kimai_datum` | Letzter Stundeneintrag: nur Datum | Beschriftung „Zuletzt gebucht:“ |
-| `facility_kimai_eintrag` | Letzter Stundeneintrag: nur Eintrag | Vorlage `{benutzer}: {taetigkeit} ({dauer} h) – {beschreibung}` |
+| `entity_kimai` | Register | Höchstzahl Zeilen z.B. 20 |
+| `entity_kimai_letzte` | Letzte Stundeneinträge | Höchstzahl Zeilen 5 |
+| `entity_kimai_datum` | Letzter Stundeneintrag: nur Datum | Beschriftung „Zuletzt gebucht:“ |
+| `entity_kimai_eintrag` | Letzter Stundeneintrag: nur Eintrag | Vorlage `{benutzer}: {taetigkeit} ({dauer} h) – {beschreibung}` |
 
-### Ebene Projekt – Tabelle `prozesse`
+### Ebene Projekt – Tabelle `projects`
 
-1. Views → Neu: Typ **KimaiProjekt**, Tabelle **prozesse**.
+1. Views → Neu: Typ **KimaiProjekt**, Tabelle **projects**.
 2. Zuordnung (Vorgaben): Projekt finden über „Name ist gleich“, Vorlage `{$prozess_projekt}`. Die Einstellung „Projekt nur beim zugehörigen Kimai-Kunden suchen“ ist eingeschaltet, Kunde über `{$prozess_kunde}`. Ausgeschaltet wird in allen Projekten gesucht.
 3. Darstellung wie oben, z.B. `prozess_kimai_stunden` (Stundeneinträge, Höchstzahl 10) und `prozess_kimai_letzter` (Datum und Eintrag, Datumsformat „relativ“).
 
@@ -125,10 +129,10 @@ Stundeneinträge beziehen sich auf dieser Ebene nur auf das gefundene Projekt.
 
 ### Zugeordnete Stunden – View `KimaiStunden`
 
-Diese schlanke View zeigt die neuesten Stundeneinträge einer Facility oder eines Prozesses. Sie wird serverseitig ohne JavaScript erzeugt.
+Diese schlanke View zeigt die neuesten Stundeneinträge einer Entity oder eines Prozesses. Sie wird serverseitig ohne JavaScript erzeugt.
 
-1. Views → Neu: Typ **KimaiStunden**, Tabelle `facility` oder `prozesse`.
-2. **Ebene:** Kunde (facility: alle Stunden des Kimai-Kunden) oder Projekt (prozesse: Stunden des Kimai-Projekts). Bei Tabellennamen mit „proz“ ist „Projekt“ vorgewählt.
+1. Views → Neu: Typ **KimaiStunden**, Tabelle `entity` oder `projects`.
+2. **Ebene:** Kunde (entity: alle Stunden des Kimai-Kunden) oder Projekt (projects: Stunden des Kimai-Projekts). Bei Tabellennamen mit „proz“ ist „Projekt“ vorgewählt.
 3. **Zuordnung** und **Prüfung** wie bei KimaiKunde bzw. KimaiProjekt.
 4. **Darstellung und Rechte:**
 
@@ -144,14 +148,14 @@ Diese schlanke View zeigt die neuesten Stundeneinträge einer Facility oder eine
 
 Bei „Summe der dargestellten“ holt das Plugin nur die benötigten Einträge aus Kimai. „Gesamtstunden“ lädt alle Einträge des Zeitraums, die danach im Zwischenspeicher liegen. Für die Rollen gilt dasselbe wie bei den anderen Views: ohne Recht keine Anzeige, unterhalb der Grenze nur eigene Einträge, Beträge nur mit Recht.
 
-Beispiele: `facility_stunden` (Ebene Kunde, 5 Einträge, Summe „beides“) und `prozess_stunden` (Ebene Projekt, 7 Einträge, kompakte Liste).
+Beispiele: `entity_stunden` (Ebene Kunde, 5 Einträge, Summe „beides“) und `prozess_stunden` (Ebene Projekt, 7 Einträge, kompakte Liste).
 
 ### In die Show-Views einbetten
 
-Im Builder der Show-View (`facility_show` bzw. `prozess_show`):
+Im Builder der Show-View (`entity_show` bzw. `prozess_show`):
 
 1. Das Element **View** an die gewünschte Stelle ziehen. Mehrere Views können getrennt platziert werden: Datum oben im Kopf, Eintrag in einer Karte, Register in einem Tab „Zeiterfassung“.
-2. Die View wählen, Beziehung **gleicher Datensatz** (`.facility` bzw. `.prozesse`).
+2. Die View wählen, Beziehung **gleicher Datensatz** (`.entity` bzw. `.projects`).
 3. Speichern.
 
 Register- und Listen-Views laden ihre Daten nachträglich, die Seite öffnet sich sofort. Die Views für den letzten Stundeneintrag werden beim Seitenaufbau erzeugt. Dank Zwischenspeicher kostet das je View nur eine kleine Kimai-Abfrage.
@@ -160,7 +164,7 @@ Register- und Listen-Views laden ihre Daten nachträglich, die Seite öffnet sic
 
 Saltcorn-Listen betten keine Views je Zeile ein. Dafür gibt es Felder plus Aktion:
 
-1. In `prozesse` (bzw. `facility`) die Felder `letzter_eintrag_datum` (Date) und `letzter_eintrag` (String) anlegen.
+1. In `projects` (bzw. `entity`) die Felder `letzter_eintrag_datum` (Date) und `letzter_eintrag` (String) anlegen.
 2. Aktion **kimai_abgleich_projekt** (bzw. `kimai_abgleich_kunde`) konfigurieren: „Datum des letzten Stundeneintrags speichern in“ und „Letzten Stundeneintrag speichern in“.
 3. Als Button in der Liste oder als zeitgesteuerten Trigger (z.B. täglich) ausführen. Danach sind beide Felder normale Listenspalten.
 
@@ -184,8 +188,8 @@ Außerdem gilt:
 
 | Aktion | Zuordnung wie |
 |---|---|
-| `kimai_abgleich_kunde` | KimaiKunde (facility) |
-| `kimai_abgleich_projekt` | KimaiProjekt (prozesse) |
+| `kimai_abgleich_kunde` | KimaiKunde (entity) |
+| `kimai_abgleich_projekt` | KimaiProjekt (projects) |
 | `kimai_abgleich` | KimaiDatensatz (frei) |
 
 Zielfelder (alle optional):
