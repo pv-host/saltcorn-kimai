@@ -1,0 +1,82 @@
+
+> saltcorn-kimai@0.4.0 test:all
+> npm test && npm run test:security
+
+
+> saltcorn-kimai@0.4.0 test
+> node test/run-tests.js
+
+Vorlagen und Variablen:
+  ok - Feld, Auffüllen, Variable
+  ok - eigene Variablen überschreiben Vorgaben, verschachtelt
+  ok - Fehler: leeres Feld, unbekannte Variable, Zirkel
+  ok - ungültige Variablen werden gemeldet
+  ok - Datumsvariablen und Zeiträume
+Client:
+  ok - URL-Normalisierung und Query-Arrays
+  ok - falscher Token -> verständlicher Fehler
+  ok - alte Anmeldung X-AUTH-USER
+  ok - nicht erreichbar -> 502
+  ok - Projekte mit ignoreDates (sonst fehlen beendete Projekte)
+  ok - Zwischenspeicher: zweiter Kundenabruf ohne HTTP
+  ok - Zeiteinträge seitenweise (625 Einträge, 2 Seiten)
+  ok - Höchstzahl begrenzt die Abfrage
+  ok - Wiederholungsschutz bei kaputter Seitenaufteilung
+  ok - ohne Kunden-/Projektfilter keine Zeiteinträge
+Zuordnung:
+  ok - Entity -> Kunde über Präfix {$kunde}
+  ok - inaktive ausblenden
+  ok - Kunde über Nummer und über ID-Feld
+  ok - Prozess -> Kunde über {reference_code[0:4]}, Projekt über {reference_code}
+  ok - Prozess -> Projekt über {reference_code} innerhalb des Kunden
+  ok - ohne Kunde: Projekte über Vorlage in allen Kunden, Kunde abgeleitet
+  ok - Schutz: leere/zu kurze Werte zeigen nie alle Kunden
+  ok - Übersicht über Kunden-ID
+  ok - Vorgaben bleiben bei leeren Konfigurationswerten
+Stundeneinträge (index.js):
+  ok - Zeitraum, Summen, Beträge nur mit Recht
+  ok - Filter Projekt/Tätigkeit/Export/Abrechenbar/Benutzer
+  ok - fremdes Projekt wird abgewiesen
+  ok - Rolle unter Grenze sieht nur eigene Einträge (E-Mail = Kimai-Benutzername)
+  ok - ungültiger Zeitraum
+  ok - Anzeige-Daten enthalten nur nötige Felder
+  ok - Ebene Projekt: Prozess -> Kimai-Projekt über {$prozess_projekt} beim Kunden {$prozess_kunde}
+  ok - Ebene Kunde: „keine Kundenzuordnung“ und „alle Kunden“ sind ausgeschlossen
+  ok - Begrenzung: nur N neueste Einträge, Abfrage mit kleiner Seitengröße
+  ok - letzter Stundeneintrag: Entity, Prozess, eigene, ohne Treffer
+  ok - letzter Stundeneintrag: Datum und Eintrag getrennt formatiert
+  ok - KimaiStunden: Entity – letzte 5 Einträge, kleine Kimai-Abfrage
+  ok - KimaiStunden: Prozess – 7 Einträge, Gesamtsumme im Zeitraum, Liste
+  ok - KimaiStunden: Zeitraum, eigene Einträge, Beträge, leer
+  ok - Plugin-Struktur
+
+39 Tests bestanden
+
+> saltcorn-kimai@0.4.0 test:security
+> node --test security-tests/regression.test.js
+
+TAP version 13
+# Subtest: Kimai: cache separates complete bearer tokens and never embeds the token
+ok 1 - Kimai: cache separates complete bearer tokens and never embeds the token
+  ---
+  duration_ms: 22.946335
+  ...
+# Subtest: Kimai: URL credentials and ambiguous query/fragment rejected
+ok 2 - Kimai: URL credentials and ambiguous query/fragment rejected
+  ---
+  duration_ms: 0.460922
+  ...
+# Subtest: Kimai: no credential-bearing redirects
+ok 3 - Kimai: no credential-bearing redirects
+  ---
+  duration_ms: 1.988853
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 165.286941

@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-23",
+  "component": "saltcorn-kimai",
+  "version": "0.4.0",
+  "automated_tests_passed": 42,
+  "phpunit_integration_repeated": false,
+  "baseline_implementation_files_byte_identical": [
+    "index.js",
+    "lib/resolve.js",
+    "lib/browser.js",
+    "lib/kimai.js",
+    "lib/template.js",
+    "lib/hours.js",
+    "test/mock-kimai.js",
+    "test/run-tests.js"
+  ],
+  "syntax_checks": [
+    {
+      "file": "index.js",
+      "passed": true
+    },
+    {
+      "file": "security-tests/regression.test.js",
+      "passed": true
+    },
+    {
+      "file": "lib/resolve.js",
+      "passed": true
+    },
+    {
+      "file": "lib/browser.js",
+      "passed": true
+    },
+    {
+      "file": "lib/kimai.js",
+      "passed": true
+    },
+    {
+      "file": "lib/template.js",
+      "passed": true
+    },
+    {
+      "file": "lib/hours.js",
+      "passed": true
+    },
+    {
+      "file": "test/mock-kimai.js",
+      "passed": true
+    },
+    {
+      "file": "test/run-tests.js",
+      "passed": true
+    }
+  ],
+  "shared_test_dependencies": "Isolated local Saltcorn 1.6.2 development dependencies, not sibling plugins",
+  "production_modified": false
+}

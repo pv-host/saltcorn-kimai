@@ -1,6 +1,6 @@
 {
   "name": "saltcorn-kimai",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Saltcorn-Plugin: Kimai-Zeiterfassung lesend einbinden – Kunden, Projekte, Tätigkeiten und Stundeneinträge je Datensatz (z.B. Entity), Zuordnung über Vorlagen und Variablen",
   "main": "index.js",
   "license": "MIT",
@@ -8,7 +8,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node test/run-tests.js"
+    "test": "node test/run-tests.js",
+    "test:security": "node --test security-tests/regression.test.js",
+    "test:all": "npm test && npm run test:security"
   },
   "keywords": [
     "saltcorn",
@@ -26,7 +28,7 @@
     "SECURITY-REVIEW.md"
   ],
   "devDependencies": {
-    "@saltcorn/data": ">=1.0.0",
-    "@saltcorn/markup": ">=1.0.0"
+    "@saltcorn/data": "1.6.2",
+    "@saltcorn/markup": "1.6.2"
   }
 }

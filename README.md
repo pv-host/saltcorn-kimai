@@ -1,6 +1,10 @@
+Hinweis zur Einzelentwicklung: `ENTWICKLUNG.md` und `UMSTELLUNG.md` in diesem Ordner sind der Einstieg. Weitere Plugins oder das frühere Gesamtarchiv werden dafür nicht benötigt.
+
 # Bereinigte Fassung 0.4.0
 
-Stand 21.10.2026. Vor Installation SECURITY-REVIEW.md und die übergeordnete UMSTELLUNG.md lesen. Historische Testangaben im folgenden Text gelten nicht als erneuter Integrationstest dieser Fassung.
+Stand 21.10.2026. Vor Installation SECURITY-REVIEW.md und UMSTELLUNG.md in diesem Ordner lesen. Historische Testangaben im folgenden Text gelten nicht als erneuter Integrationstest dieser Fassung.
+
+Weiterentwicklung 0.5.0 (23.10.2026): Tabellen aller Views im Layout der Saltcorn-View „List“, siehe Abschnitt „Layout wie Saltcorn-List“ und CHANGELOG.md.
 
 # saltcorn-kimai
 
@@ -149,6 +153,31 @@ Diese schlanke View zeigt die neuesten Stundeneinträge einer Entity oder eines 
 Bei „Summe der dargestellten“ holt das Plugin nur die benötigten Einträge aus Kimai. „Gesamtstunden“ lädt alle Einträge des Zeitraums, die danach im Zwischenspeicher liegen. Für die Rollen gilt dasselbe wie bei den anderen Views: ohne Recht keine Anzeige, unterhalb der Grenze nur eigene Einträge, Beträge nur mit Recht.
 
 Beispiele: `entity_stunden` (Ebene Kunde, 5 Einträge, Summe „beides“) und `prozess_stunden` (Ebene Projekt, 7 Einträge, kompakte Liste).
+
+### Layout wie Saltcorn-List
+
+Alle Tabellen des Plugins verwenden dasselbe Markup wie die Saltcorn-View **List**: `div.table-responsive` › `table.table.table-sm`, rechtsbündige Zahlenspalten über `text-align-right` und eine Seitennavigation `ul.pagination`. KimaiStunden erzeugt die Tabelle serverseitig direkt mit Saltcorns `mkTable`. KimaiKunde, KimaiProjekt, KimaiDatensatz und KimaiUebersicht bauen im Browser dasselbe Markup nach. Das Theme (z.B. sbadmin2) gestaltet deshalb Kimai-Tabellen und List-Views gleich.
+
+Im letzten Konfigurationsschritt gibt es wie bei List ein Register **Layout**. Die Feldnamen entsprechen denen der List-View:
+
+| Einstellung | List-Feld | Vorgabe |
+|---|---|---|
+| Kopfzeile ausblenden | `_omit_header` | aus |
+| Leere Spalten ausblenden | `hide_null_columns` | aus |
+| Zeilen hervorheben | `_hover_rows` | aus |
+| Zebrastreifen | `_striped_rows` | aus |
+| Zeilen als Karten | `_card_rows` | aus |
+| Ohne Linien | `_borderless` | aus |
+| Vertikale Ausrichtung | `_cell_valign` | Mitte |
+| Auf kleinen Bildschirmen untereinander, Umbruch (px) | `_responsive_collapse`, `_collapse_breakpoint_px` | aus, 760 |
+| Tabellenlayout | `_table_layout` | automatisch |
+| Kopfzeile fixieren | `_sticky_header` | aus |
+
+Für ein einheitliches Bild dieselben Werte wie in den List-Views setzen. Bei KimaiStunden gilt das Register nur für die Darstellung „Tabelle“, bei den übrigen Views nicht für „Letzter Stundeneintrag“.
+
+Einheitlich in allen Views: Spaltennamen und Reihenfolge (Datum, Zeit, Stunden, Benutzer, Projekt, Tätigkeit, Beschreibung, Betrag, Link), Badge „läuft“ und „inaktiv“, Summen- und Hinweiszeilen (`small`, Hinweise `text-muted`), Text ohne Einträge.
+
+Unterschiede zu List: Die Spalten sind fest vorgegeben, es gibt keine Sortierung über die Kopfzeile, keine Kopfzeilenfilter und keine Zeilenfarbformel.
 
 ### In die Show-Views einbetten
 

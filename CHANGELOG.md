@@ -4,6 +4,17 @@ Installationsbezüge neutralisiert; Einzelheiten siehe SECURITY-REVIEW.md. Es wu
 
 # Changelog
 
+## 0.5.0 – 2026-10-23
+
+- **Layout wie Saltcorn-List:** KimaiStunden rendert serverseitig mit `mkTable` aus `@saltcorn/markup` (gleiches Markup und gleiche Klassen wie List, `data-row-id` je Zeile). Die Browser-Tabellen von KimaiKunde, KimaiProjekt, KimaiDatensatz und KimaiUebersicht erzeugen dasselbe Markup.
+- Neues Register **Layout** im letzten Konfigurationsschritt mit den Feldnamen der List-View: Kopfzeile ausblenden, leere Spalten ausblenden, Zeilen hervorheben, Zebrastreifen, Zeilen als Karten, ohne Linien, vertikale Ausrichtung, untereinander auf kleinen Bildschirmen (Umbruch px), Tabellenlayout, Kopfzeile fixieren (`lib/layout.js`).
+- Zahlenspalten rechtsbündig über Saltcorns `text-align-right` statt Bootstrap `text-end`. Die Seitennavigation der Stundeneinträge entspricht List (`ul.pagination`, Seitenzahlen statt «/»).
+- Einheitliche Spalten: „Dauer“ heißt überall „Stunden“, Kundenliste „Kunde“ statt „Name“, Projektliste in der Reihenfolge Nummer/Auftrag, Kommentar. Badge „läuft“ auch in KimaiStunden; Beschreibung und Kommentar ohne verkleinerte Schrift; Summentabelle mit Gruppenüberschrift.
+- Einheitliche Hinweis-, Summen- und Leerzeilen (`kimai-hint`, `kimai-sum`, `kimai-empty`).
+- Verhaltensänderung: Bestehende Views ohne Layout-Einstellungen erscheinen wie eine List mit Vorgaben, also ohne Hervorheben unter dem Mauszeiger. Bisher waren Browser-Tabellen immer `table-hover`. Bei Bedarf „Zeilen hervorheben“ einschalten.
+- Tests: 41 (neu: Layout-Optionen und -Markup, Browser-Tabellen).
+
+
 ## 0.3.0 – 2026-10-21
 
 - Neuer View-Typ **KimaiStunden**: zugeordnete Stunden einer Entity (Ebene Kunde) oder eines Prozesses (Ebene Projekt), die letzten N Einträge (Vorgabe 5, z.B. 5–7), serverseitig ohne JavaScript

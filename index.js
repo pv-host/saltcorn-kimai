@@ -27,6 +27,7 @@ const { KimaiClient, KimaiError, normalizeBase } = require("./lib/kimai");
 const { buildVariables, DEFAULT_VARIABLES, dateVariables, fill, isoDay, rangePreset, TemplateError } = require("./lib/template");
 const { MAPPING_DEFAULTS, MATCH_MODES, withDefaults, resolveRow, resolveCustomerId, timesheetScope, idOf } = require("./lib/resolve");
 const { kimaiPanel } = require("./lib/browser");
+const { layoutFields, layoutOptions } = require("./lib/layout");
 const { renderHours } = require("./lib/hours");
 
 function getFieldRepeat() {
@@ -813,6 +814,7 @@ function displayFields(roleOpts, { level = "frei", withDisplay = true } = {}) {
     },
     role("min_role_rates", "Mindestrolle Beträge (Stundensätze) sehen", "1"),
     role("min_role_refresh", "Mindestrolle „Neu aus Kimai laden“", "40"),
+    ...layoutFields(withDisplay ? { display: DISPLAY_LIST } : undefined),
   ];
   return fields;
 }
@@ -833,6 +835,9 @@ function kimaiLinks(pluginCfg) {
     return null;
   }
 }
+
+/** HTML-ID für Tabellen wie List: View-Name und Datensatz */
+const tableIdOf = (viewname, id) => "kimai_" + String(viewname || "view").replace(/[^A-Za-z0-9_-]/g, "_") + (id === undefined ? "" : "_" + String(id).replace(/[^A-Za-z0-9_-]/g, "_"));
 
 function renderPanel({ viewname, ctx, config, req, mode, pluginCfg, range, labels }) {
   const uid = "kimai_" + Math.random().toString(36).slice(2, 10);
@@ -861,6 +866,8 @@ function renderPanel({ viewname, ctx, config, req, mode, pluginCfg, range, label
     page_size: Number(config.page_size) > 0 ? Number(config.page_size) : 50,
     show_info: config.show_info !== false && !compact,
     group_default: config.group_default || "project",
+    layout: layoutOptions(config),
+    table_id: tableIdOf(viewname, ctx && ctx.id),
   };
   const json = JSON.stringify(O).replace(/</g, "\\u003c");
   return div({ id: uid, class: "kimai-panel" }, div({ class: "text-muted small" }, "Kimai wird geladen …")) +
@@ -1368,6 +1375,7 @@ function hoursDisplayFields(roleOpts) {
       default: "{$kimai_benutzer}",
     },
     role("min_role_rates", "Mindestrolle Beträge sehen", "1"),
+    ...layoutFields({ hours_style: "table" }),
   ];
 }
 
@@ -1483,6 +1491,7 @@ const makeHoursView = (pluginCfg) => {
       const h = await loadHours(client, cfg, config, resolved, row, req, vars());
       return renderHours({
         ...h,
+        tableId: tableIdOf(viewname, id),
         config,
         showRates: allowed(req, config.min_role_rates, "1"),
         links: kimaiLinks(cfg),

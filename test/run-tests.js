@@ -277,9 +277,39 @@ const t = async (name, fn) => {
       assert.strictEqual(h.total, null);
       assert.ok(mock.calls.every((c) => !c.startsWith("/api/timesheets") || c.includes("size=9")));
       const html = renderHours({ ...h, config: { hours_limit: 5 }, showRates: false, multiProject: true });
-      assert.strictEqual((html.match(/<tr>/g) || []).length, 6); // Kopf + 5
-      assert.ok(html.includes("<th class=\"\">Projekt</th>") && html.includes("5 Einträge: <b>1:15 h</b>"));
+      assert.strictEqual((html.match(/<tr[ >]/g) || []).length, 6); // Kopf + 5
+      assert.ok(html.includes("<th>Projekt</th>") && html.includes("5 Einträge: <b>1:15 h</b>"));
+      // Layout wie Saltcorns List (mkTable)
+      assert.ok(html.includes('<div class="table-responsive"><table class="table table-sm table-valign-middle'));
+      assert.ok(html.includes('<th class="text-align-right">Stunden</th>') && html.includes('<td class="text-align-right">0:15</td>'));
+      assert.ok(!html.includes("text-end"));
       assert.ok(html.includes("ältere Einträge nicht dargestellt"));
+    });
+    await t("Layout wie List: Optionen, Klassen, Kopfzeile, leere Spalten, untereinander", async () => {
+      const { layoutOptions, layoutFields, renderTable, LAYOUT_FIELD_NAMES } = require("../lib/layout");
+      assert.deepStrictEqual(LAYOUT_FIELD_NAMES, ["_omit_header", "hide_null_columns", "_hover_rows", "_striped_rows", "_card_rows", "_borderless", "_cell_valign", "_responsive_collapse", "_collapse_breakpoint_px", "_table_layout", "_sticky_header"]);
+      assert.ok(layoutFields().every((f) => f.tab === "Layout"));
+      const lo = layoutOptions({ _hover_rows: true, _striped_rows: true, _borderless: true, _cell_valign: "Top" });
+      assert.strictEqual(lo.class, "table-hover table-striped table-borderless table-valign-top ");
+      assert.strictEqual(layoutOptions({}).class, "table-valign-middle ");
+      assert.strictEqual(layoutOptions({ _cell_valign: "x<y" }).class, "table-valign-middle ");
+      const hdrs = [{ label: "A", key: (x) => x.a }, { label: "B", key: (x) => x.b, align: "right" }, { label: "", key: () => "", keep: true }];
+      const rows = [{ a: "1", b: "" }, { a: "2", b: null }];
+      let html = renderTable(hdrs, rows, layoutOptions({ _omit_header: true }));
+      assert.ok(!html.includes("<thead") && html.includes('<td class="text-align-right"></td>'));
+      html = renderTable(hdrs, rows, layoutOptions({ hide_null_columns: true }));
+      assert.ok(html.includes("<th>A</th>") && !html.includes(">B</th>") && (html.match(/<th[ >]/g) || []).length === 2);
+      html = renderTable(hdrs, rows, layoutOptions({ _responsive_collapse: true, _collapse_breakpoint_px: 600, _sticky_header: true, _table_layout: "Fixed" }), "kimai_v_1");
+      assert.ok(html.includes('id="kimai_v_1"') && html.includes("max-width: 600px") && html.includes("sticky-top") && html.includes("table-layout-fixed"));
+      assert.ok(!html.includes("table-responsive"));
+    });
+    await t("Layout: Browser-Tabellen wie List (Markup, Ausrichtung, Seitennavigation)", async () => {
+      const { kimaiPanel } = require("../lib/browser");
+      const src = kimaiPanel.toString();
+      assert.ok(!/text-end|btn btn-sm btn-outline-secondary kimai-(prev|next)|"Dauer"/.test(src));
+      assert.ok(src.includes('<ul class="pagination">') && src.includes("page-link link-style") && src.includes("text-align-"));
+      const idx = await plugin.viewtemplates({})[1].configuration_workflow().steps;
+      assert.ok(idx.length >= 3);
     });
     await t("KimaiStunden: Prozess – 7 Einträge, Gesamtsumme im Zeitraum, Liste", async () => {
       const rp = await resolveRow(client, mappingOf("projekt", {}), { reference_code: "08150001" }, vars);

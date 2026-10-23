@@ -1,0 +1,42 @@
+[
+  {
+    "file": "index.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "file": "lib/resolve.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "file": "lib/browser.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "file": "lib/kimai.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "file": "lib/template.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "file": "lib/hours.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "file": "test/mock-kimai.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "file": "test/run-tests.js",
+    "ok": true,
+    "error": ""
+  }
+]

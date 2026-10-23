@@ -1,0 +1,25 @@
+Oberflächenprüfung saltcorn-kimai 0.5.0 – 23.10.2026
+
+Umgebung: lokale Saltcorn-1.6.2-Testinstanz (SQLite, Theme sbadmin2), Kimai-Nachbau
+aus test/mock-kimai.js (Kimai-Version 2.40.0 simuliert), Chromium headless.
+Nicht geprüft: echte Kimai-Installation, Produktionsinstanz, PostgreSQL.
+Tabellen- und View-Namen der Testinstanz sind Testbezeichner und nicht Teil des Pakets.
+
+Vergleich auf einer Show-Seite: native List-View (Zebrastreifen, Hervorheben, Mitte)
+neben KimaiStunden, KimaiKunde „Letzte Stundeneinträge“ und KimaiKunde „Register“
+mit denselben Layout-Werten.
+
+Ergebnis (ausgelesene Tabellenklassen):
+- List:                 div.table-responsive > table.table.table-sm.table-hover.table-striped.table-valign-middle
+- KimaiStunden:         gleich (serverseitig mkTable), Stunden th/td text-align-right
+- KimaiKunde letzte:    gleich (Browser), Stunden/Betrag text-align-right
+- KimaiKunde Register:  Kunden-, Projekt-, Tätigkeits-, Summen- und Eintragstabelle gleich
+- Seitennavigation:     ul.pagination > li.page-item(.active) > span.page-link.link-style;
+                        Klick auf Seite 2 setzt „active“ auf 2
+- Register „Layout“ in der Konfiguration (KimaiStunden Schritt 4, KimaiKunde Schritt 3)
+  angezeigt; gespeicherte Werte bleiben beim erneuten Öffnen erhalten
+- Untereinander auf kleinen Bildschirmen (480 px Breite, Umbruch 760 px): Zellen
+  display:block mit Spaltenbezeichnung, wie List
+- Keine JavaScript-Fehler auf den geprüften Seiten
+
+Automatische Tests: siehe tests-0.5.0-2026-10-23.txt (41 Tests, 3 Sicherheitsregressionen).
